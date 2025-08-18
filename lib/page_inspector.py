@@ -31,13 +31,15 @@ class PageInspector:
                     url_meta = tldextract.extract(request.url)
 
                     domain = f"{url_meta.domain}.{url_meta.suffix}"
-
                     if domain not in self.captures:
-                        self.captures[domain] = []
+                        self.captures[domain] = {}
 
-                    self.captures[domain].append({
-                        "tipo": "request",
-                        "metodo": request.method,
+                    if page.url not in self.captures[domain]:
+                        self.captures[domain][page.url] = []
+
+                    self.captures[domain][page.url].append({
+                        "type": "request",
+                        "method": request.method,
                         "url": request.url,
                         "headers": dict(request.headers),
                         "body": request.post_data
@@ -58,13 +60,13 @@ class PageInspector:
                     
                     domain = f"{url_meta.domain}.{url_meta.suffix}"
 
-                    self.captures[domain].append({
-                        "tipo": "response",
+                    self.captures[domain][page.url].append({
+                        "type": "response",
                         "status": response.status,
                         "url": response.url,
                         "headers": dict(response.headers),
                         "body": body,
-                        "metodo_request": response.request.method
+                        "request_method": response.request.method
                     })
 
                     print(f"[RESPONSE] {response.status} {response.request.method} {response.url}")
