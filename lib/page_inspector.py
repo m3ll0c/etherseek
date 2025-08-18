@@ -40,6 +40,7 @@ class PageInspector:
                     self.captures[domain][page.url].append({
                         "type": "request",
                         "method": request.method,
+                        "domain": domain,
                         "url": request.url,
                         "headers": dict(request.headers),
                         "body": request.post_data
@@ -63,6 +64,7 @@ class PageInspector:
                     self.captures[domain][page.url].append({
                         "type": "response",
                         "status": response.status,
+                        "domain": domain,
                         "url": response.url,
                         "headers": dict(response.headers),
                         "body": body,
