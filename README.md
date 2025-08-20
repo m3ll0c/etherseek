@@ -1,13 +1,12 @@
-# etherseek
+# EtherHide
 
 **EtherHide** is a blockchain-based technique for hiding malicious payloads within Ethereum smart contracts. Attackers leverage this to **deliver malware, exfiltrate data, or obfuscate C2 communications**.
 
-`etherseek` is a cyber intelligence tool designed to identify and analyze the **EtherHide** technique. It extracts relevant **network information** from infected sites, enabling analysts to correlate suspicious activity across the blockchain. Usefull to map active and past campaigns.
+`etherseek` is a cyber intelligence tool designed to identify and analyze the **EtherHide** technique. It extracts relevant **network information** from infected sites, enabling analysts to correlate suspicious activities to a crypto wallet.
 
 ## ✨ Features
 
-* 🔍 **Detect EtherHide usage** in Ethereum|BNB contracts.
-* 🔗 **Correlate contracts and wallets** involved in suspicious operations.
+* 🔗 **Correlate contracts and wallets** involved in suspicious operations given an infected page.
 * 📡 **Extract network indicators** for threat intelligence workflows.
 * 🛠 **Ad-hoc analysis tools** for customized blockchain research.
 * 📑 **Export results** in analyst-friendly formats (JSON, CSV, etc.).
