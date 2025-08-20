@@ -84,7 +84,7 @@ def seek(args: Namespace, settings: dict):
     elif args.urlscan:
         urls = Retriever.urls_from_urlscan(args.urlscan[0], settings)
 
-    url_parts = Transform.split_list(urls[:10], args.jobs)
+    url_parts = Transform.split_list(urls, args.jobs)
     processing_load = [(url_part, args.verbose, settings) for url_part in url_parts]
     
     output_path = f"./{settings["results_path"]}/{args.output}"
