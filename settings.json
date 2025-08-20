@@ -1,0 +1,12 @@
+{
+    "urlscan_query": "(page.domain:*.br OR page.domain:*.us OR page.domain:*.uy OR page.domain:*.cl OR page.domain:*.pt OR page.domain:*.co) AND (domain:*bsc-dataseed.binance.org OR domain:*bsc-dataseed1.binance.org) AND filename:*wp-content*",
+    "chromium_flags": [
+        "--disable-blink-features=AutomationControlled",
+        "--disable-client-side-phishing-detection",
+        "--safebrowsing-disable-download-protection",
+        "--safebrowsing-disable-auto-update",
+        "--disable-popup-blocking"
+    ],
+    "temp_profiles_path": "temp_profs",
+    "results_path": "results"
+}
