@@ -11,18 +11,23 @@ class PageInspector:
         self.captures = {}
         self.headless = headless
 
-    def capture_requests(self, urls: list, verbose: bool, format: str = "dict"):
+    def capture_requests(self, urls: list, verbose: bool, settings: dict, format: str = "dict"):
+        """_summary_
+
+        Args:
+            urls (list): list of urls to be scanned
+            verbose (bool): level of details
+            settings (dict): settings of etherseek
+            format (str, optional): output format. Defaults to "dict".
+
+        Returns:
+            _type_: returns a dictionary with all the captured data
+        """
         with sync_playwright() as p:
             browser = p.chromium.launch_persistent_context(
-                user_data_dir=Path(f"./mock_data/{uuid4()}"),  # creates a unique user data directory
+                user_data_dir=Path(f"./{settings["temp_profiles_path"]}/{uuid4()}"),  # creates a unique user data directory
                 headless=self.headless,
-                args=[
-                    "--disable-blink-features=AutomationControlled",
-                    "--disable-client-side-phishing-detection",
-                    "--safebrowsing-disable-download-protection",
-                    "--safebrowsing-disable-auto-update",
-                    "--disable-popup-blocking"
-                ]
+                args=settings["chromium_flags"]
             )  # headless to add elegance
             page = browser.new_page()
             

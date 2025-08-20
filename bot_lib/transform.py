@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 
 from bot_lib.chain_translator import ChainTranslator
@@ -11,7 +12,7 @@ class Transform:
         return [lst[i*k + min(i, m):(i+1)*k + min(i+1, m)] for i in range(n_parts)]
 
     @classmethod
-    def filter_results(results, keyword):
+    def filter_results(cls, results, keyword):
         result = []
 
         for captures in results:

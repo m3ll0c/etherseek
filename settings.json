@@ -8,5 +8,6 @@
         "--disable-popup-blocking"
     ],
     "temp_profiles_path": "temp_profs",
-    "results_path": "results"
+    "results_path": "results",
+    "log_path": "logs"
 }

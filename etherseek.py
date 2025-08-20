@@ -11,11 +11,13 @@
 
 import json
 import shutil
+import logging
 import argparse
 import traceback
 import multiprocessing
 import pandas as pd
 
+import os
 from uuid import uuid4 
 from pathlib import Path
 from argparse import Namespace
@@ -27,28 +29,55 @@ from bot_lib.transform import Transform
 from bot_lib.retriever import Retriever
 
 
+def init_logger(file_path: str, execution_id: str):
+    """init logger
+
+    Args:
+        file_path (str): file path
+        execution_id (str): uuid generate for the directories
+    """
+    if not os.path.exists(file_path):
+        os.mkdir(file_path)
+        
+    logger = logging.getLogger()
+    logger.setLevel(logging.ERROR)
+
+    file_handler = logging.FileHandler(f"{file_path}/{execution_id}.log")
+    file_handler.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter('[ %(asctime)s | %(levelname)s ] - %(message)s')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+
 def invoke_inspector(load):
+    """utility to run the inspector
+
+    Args:
+        load (tuple): 1. urls list, 2. verbose flag, 3. settings dict
+
+    Returns:
+        _type_: return capture_requests()
+    """
     inspector = PageInspector(headless=True)
-    return inspector.capture_requests(load[0], load[1])
+    return inspector.capture_requests(load[0], load[1], load[2])
 
 
-def seek(args: Namespace):
+def seek(args: Namespace, settings: dict):
     """Where the real work happens
 
     Args:
         args (Namespace): Namespace with execution arguments
-    """
-    print(args)
-    
-    if "file" in args:
+    """    
+    if args.file:
         urls = Retriever.urls_from_local_file(args.file[0], args.file[1])
-    elif "urlscan" in args:
-        urls = Retriever.urls_from_urlscan(args.urlscan[0])
+    elif args.urlscan:
+        urls = Retriever.urls_from_urlscan(args.urlscan[0], settings)
 
     url_parts = Transform.split_list(urls[:10], args.jobs)
-    processing_load = [(url_part, args.verbose) for url_part in url_parts]
+    processing_load = [(url_part, args.verbose, settings) for url_part in url_parts]
     
-    output_path = f"./results/{args.output}"
+    output_path = f"./{settings["results_path"]}/{args.output}"
     Path(output_path).mkdir(parents=True, exist_ok=True)
 
     with multiprocessing.Pool(processes=args.jobs) as pool:
@@ -61,25 +90,32 @@ def seek(args: Namespace):
 
     dataset = pd.DataFrame(Transform.dataset_maker(filtered_results))
     dataset.to_csv(f"{output_path}/results.csv", index=False)
+    print(dataset.head())
 
     if args.wallets:
         addresses = list(set(dataset["contract_address"].to_list()))
 
         if not args.chainid:
             chain_name, chain_meta = ChainTranslator.translate(args.keyword)
-            wallets = Retriever.wallets(addresses, chain_meta['id'], args.wallets)
+            wallets = Retriever.wallets(addresses, chain_meta['id'], args.wallets, args.verbose)
         else:
-            wallets = Retriever.wallets(addresses, args.chainid, args.wallets)
+            wallets = Retriever.wallets(addresses, args.chainid, args.wallets, args.verbose)
         
         wallet_dataset = Transform.compact_and_add_wallet(dataset, wallets)
         wallet_dataset.to_csv(f"{output_path}/results_with_wallets-{chain_name.replace(" ",  "-")}.csv")
         print(wallet_dataset.head())
 
-    shutil.rmtree("./mock_data/")
+    shutil.rmtree(settings["temp_profiles_path"])
     print(f"Results saved to {output_path}")
 
 
 if __name__ == "__main__":
+    with open("./settings.json") as fp:
+        settings = json.load(fp)
+
+    exec_id = str(uuid4())
+    init_logger(settings["log_path"], exec_id)
+
     print(INTRO)
     parser = argparse.ArgumentParser()
 
@@ -95,7 +131,7 @@ if __name__ == "__main__":
                              )
 
     output_group = parser.add_argument_group('output')
-    output_group.add_argument('-o', '--output', default=str(uuid4()), help="changes the output path, it uses a random unique identifier as default")
+    output_group.add_argument('-o', '--output', default=exec_id, help="changes the output path, it uses a random unique identifier as default")
     output_group.add_argument('-r', '--raw', default=False, action="store_true", help="saves the raw network data, it is a little storage expensive")
 
     analysis_group = parser.add_argument_group('analysis')
@@ -108,11 +144,8 @@ if __name__ == "__main__":
     process_group.add_argument('-v', '--verbose', default=False, action="store_true", help="give the gruesome details, i sugest to leave it on, but the default is false")
 
     args = parser.parse_args()
-
+    
     try:
-        seek(args)
+        seek(args, settings)
     except Exception as e:
-        if args.verbose:
-            traceback.print_exc()
-        else:
-            print(e)
+        traceback.print_exc()
