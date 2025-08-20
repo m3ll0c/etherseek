@@ -1,4 +1,5 @@
 import json
+import logging
 import tldextract
 
 from uuid import uuid4
@@ -56,10 +57,10 @@ class PageInspector:
                         "body": request.post_data
                     })
                     if verbose:
-                        print(f"[REQUEST] {request.method} {request.url}")
+                        logging.info(f"[REQUEST] {request.method} {request.url}")
                 except Exception as e:
                     if verbose:
-                        print(f"Error when getting request: {e}")
+                        logging.error(f"Error when getting request: {e}")
 
             def log_response(response):
                 try:
@@ -85,10 +86,10 @@ class PageInspector:
                         "request_method": response.request.method
                     })
                     if verbose:
-                        print(f"[RESPONSE] {response.status} {response.request.method} {response.url}")
+                        logging.info(f"[RESPONSE] {response.status} {response.request.method} {response.url}")
                 except Exception as e:
                     if verbose:
-                        print(f"Error when getting response: {e}")
+                        logging.error(f"Error when getting response: {e}")
 
             # add listener
             page.on("request", log_request)
@@ -99,7 +100,7 @@ class PageInspector:
                     page.goto(url)
                 except Exception as e:
                     if verbose:
-                        print(f"Error when loading {url}: {e}")
+                        logging.error(f"Error when loading {url}: {e}")
                     pass
 
             # be civil, close the goddamn browser
