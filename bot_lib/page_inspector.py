@@ -2,6 +2,8 @@ import json
 import logging
 import tldextract
 
+from multiprocessing import Queue
+
 from uuid import uuid4
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -12,7 +14,7 @@ class PageInspector:
         self.captures = {}
         self.headless = headless
 
-    def capture_requests(self, urls: list, verbose: bool, settings: dict, format: str = "dict"):
+    def capture_requests(self, urls: list, verbose: bool, settings: dict, queue: Queue, format: str = "dict"):
         """_summary_
 
         Args:
@@ -96,6 +98,7 @@ class PageInspector:
             page.on("response", log_response)
 
             for url in urls:
+                queue.put(1)
                 try:
                     page.goto(url)
                 except Exception as e:

@@ -12,6 +12,8 @@
 import os
 import sys
 import json
+import time
+import tqdm
 import shutil
 import logging
 import argparse
@@ -44,7 +46,7 @@ def init_logger(file_path: str, execution_id: str):
     logger.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter(
-        fmt="%(asctime)s - %(levelname)s - %(message)s",
+        fmt="[ %(asctime)s | %(levelname)s ] - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
 
@@ -69,8 +71,9 @@ def invoke_inspector(load):
     Returns:
         _type_: return capture_requests()
     """
+    _urls, _verbose, _settings, _q = load
     inspector = PageInspector(headless=True)
-    return inspector.capture_requests(load[0], load[1], load[2])
+    return inspector.capture_requests(_urls, _verbose, _settings, _q)
 
 
 def seek(args: Namespace, settings: dict):
@@ -83,15 +86,45 @@ def seek(args: Namespace, settings: dict):
         urls = Retriever.urls_from_local_file(args.file[0], args.file[1])
     elif args.urlscan:
         urls = Retriever.urls_from_urlscan(args.urlscan[0], settings)
-
+    urls = urls[:40]
     url_parts = Transform.split_list(urls, args.jobs)
-    processing_load = [(url_part, args.verbose, settings) for url_part in url_parts]
     
     output_path = f"./{settings["results_path"]}/{args.output}"
     Path(output_path).mkdir(parents=True, exist_ok=True)
+    
+    logging.info(f"Initializing. Results will be saved at: {output_path}")
 
-    with multiprocessing.Pool(processes=args.jobs) as pool:
-        net_packages = pool.map_async(invoke_inspector, processing_load).get()
+    with multiprocessing.Manager() as manager:
+        q = manager.Queue()
+
+        processing_load = [(url_part, args.verbose, settings, q) for url_part in url_parts]
+
+        with multiprocessing.Pool(processes=args.jobs) as pool:
+            result = pool.map_async(invoke_inspector, processing_load)
+
+            if not args.verbose:
+                pbar = tqdm.tqdm(total=len(urls), desc="Scanning URLs")
+                done = 0
+                while not result.ready():
+                    while not q.empty():
+                        q.get()
+                        done += 1
+                        pbar.update(1)
+                    time.sleep(0.1)
+
+                net_packages = result.get()
+
+                while not q.empty():
+                    q.get()
+                    done += 1
+                    pbar.update(1)
+
+                pbar.close()
+            else:
+                net_packages = result.get()
+
+
+    logging.info(f"URL scanning done. Filtering by keyword: {args.keyword}")
 
     filtered_results = Transform.filter_results(net_packages, args.keyword)
 
@@ -103,19 +136,24 @@ def seek(args: Namespace, settings: dict):
     print(dataset.head())
 
     if args.wallets:
+        
         addresses = list(set(dataset["contract_address"].to_list()))
 
         if not args.chainid:
             chain_name, chain_meta = ChainTranslator.translate(args.keyword)
+            logging.info(f"Guessed chain name: {chain_name}. Searching for wallets...")
             wallets = Retriever.wallets(addresses, chain_meta['id'], args.wallets, args.verbose)
         else:
+            logging.info(f"Searching for wallets...")
             wallets = Retriever.wallets(addresses, args.chainid, args.wallets, args.verbose)
         
         wallet_dataset = Transform.compact_and_add_wallet(dataset, wallets)
         wallet_dataset.to_csv(f"{output_path}/results_with_wallets-{chain_name.replace(" ",  "-")}.csv")
         print(wallet_dataset.head())
+    
+    if not args.tempkeep:
+        shutil.rmtree(settings["temp_profiles_path"])
 
-    shutil.rmtree(settings["temp_profiles_path"])
     logging.info(f"Results saved to {output_path}")
 
 
@@ -147,14 +185,15 @@ if __name__ == "__main__":
     analysis_group = parser.add_argument_group('analysis')
     analysis_group.add_argument('-k', '--keyword', default=None, required=True, help="specify the keyword for the request url, 'binance' is fully supported")
     analysis_group.add_argument('-w', '--wallets', default=None, help="retrieves wallets from etherscan, an api key is REQUIRED, wallet analysis bypass if not specified")
-    analysis_group.add_argument('-ci', '--chainid', default=None,  type=int, help="specify the chain id to verify the wallets, it defaults to a guess based on the request domain")
+    analysis_group.add_argument('-c', '--chainid', default=None,  type=int, help="specify the chain id to verify the wallets, it defaults to a guess based on the request domain")
+    analysis_group.add_argument('-t', '--tempkeep', default=False, action="store_true", help="keeps the profiles dir after execution, usefull for checking cookies")
 
     process_group = parser.add_argument_group('process')
     process_group.add_argument('-j', '--jobs', default=1,  type=int, help="specify the number of parallel processes, it is async for performance sake")
-    process_group.add_argument('-v', '--verbose', default=False, action="store_true", help="give the gruesome details, i sugest to leave it on, but the default is false")
+    process_group.add_argument('-v', '--verbose', default=False, action="store_true", help="give the gruesome details, if you want to look like a 'hacker' turn on, but the default is false")
 
     args = parser.parse_args()
-    
+
     try:
         seek(args, settings)
     except Exception as e:
