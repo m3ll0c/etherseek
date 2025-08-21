@@ -86,7 +86,7 @@ def seek(args: Namespace, settings: dict):
         urls = Retriever.urls_from_local_file(args.file[0], args.file[1])
     elif args.urlscan:
         urls = Retriever.urls_from_urlscan(args.urlscan[0], settings)
-    urls = urls[:40]
+        
     url_parts = Transform.split_list(urls, args.jobs)
     
     output_path = f"./{settings["results_path"]}/{args.output}"
