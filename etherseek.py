@@ -54,7 +54,7 @@ def init_logger(file_path: str, execution_id: str):
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(formatter)
 
-    file_handler = logging.FileHandler(f"{file_path}/{execution_id}.log", mode="a")
+    file_handler = logging.FileHandler(os.path.join(f"{file_path}", f"{execution_id}.log"), mode="a")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
 
@@ -86,10 +86,11 @@ def seek(args: Namespace, settings: dict):
         urls = Retriever.urls_from_local_file(args.file[0], args.file[1])
     elif args.urlscan:
         urls = Retriever.urls_from_urlscan(args.urlscan[0], settings)
-        
+    urls = urls[:40]
     url_parts = Transform.split_list(urls, args.jobs)
     
-    output_path = f"./{settings["results_path"]}/{args.output}"
+    output_path = os.path.join(f"{settings["results_path"]}", f"{args.output}")
+
     Path(output_path).mkdir(parents=True, exist_ok=True)
     
     logging.info(f"Initializing. Results will be saved at: {output_path}")
@@ -128,11 +129,11 @@ def seek(args: Namespace, settings: dict):
 
     filtered_results = Transform.filter_results(net_packages, args.keyword)
 
-    with open(f"{output_path}/results.json", "w+", encoding="utf-8") as f:
+    with open(os.path.join(f"{output_path}", "results.json"), "w+", encoding="utf-8") as f:
         f.write(json.dumps(filtered_results, indent=2))
 
     dataset = pd.DataFrame(Transform.dataset_maker(filtered_results))
-    dataset.to_csv(f"{output_path}/results.csv", index=False)
+    dataset.to_csv(os.path.join(f"{output_path}", "results.csv"), index=False)
     print(dataset.head())
 
     if args.wallets:
@@ -145,10 +146,13 @@ def seek(args: Namespace, settings: dict):
             wallets = Retriever.wallets(addresses, chain_meta['id'], args.wallets, args.verbose)
         else:
             logging.info(f"Searching for wallets...")
+            chain_name = str(args.chainid)
             wallets = Retriever.wallets(addresses, args.chainid, args.wallets, args.verbose)
         
         wallet_dataset = Transform.compact_and_add_wallet(dataset, wallets)
-        wallet_dataset.to_csv(f"{output_path}/results_with_wallets-{chain_name.replace(" ",  "-")}.csv")
+
+
+        wallet_dataset.to_csv(os.path.join(f"{output_path}", f"results_with_wallets-{chain_name.replace(" ",  "-")}.csv"))
         print(wallet_dataset.head())
     
     if not args.tempkeep:
@@ -158,7 +162,7 @@ def seek(args: Namespace, settings: dict):
 
 
 if __name__ == "__main__":
-    with open("./settings.json") as fp:
+    with open("settings.json") as fp:
         settings = json.load(fp)
 
     exec_id = str(uuid4())
