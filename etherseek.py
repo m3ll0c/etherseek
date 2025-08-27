@@ -89,7 +89,7 @@ def seek(args: Namespace, settings: dict):
         
     url_parts = Transform.split_list(urls, args.jobs)
     
-    output_path = os.path.join(f"{settings["results_path"]}", f"{args.output}")
+    output_path = os.path.join(f"{settings['results_path']}", f"{args.output}")
 
     Path(output_path).mkdir(parents=True, exist_ok=True)
     
@@ -152,7 +152,7 @@ def seek(args: Namespace, settings: dict):
         wallet_dataset = Transform.compact_and_add_wallet(dataset, wallets)
 
 
-        wallet_dataset.to_csv(os.path.join(f"{output_path}", f"results_with_wallets-{chain_name.replace(" ",  "-")}.csv"))
+        wallet_dataset.to_csv(os.path.join(f"{output_path}", f"results_with_wallets-{chain_name.replace(' ',  '-')}.csv"))
         print(wallet_dataset.head())
     
     if not args.tempkeep:
@@ -200,5 +200,8 @@ if __name__ == "__main__":
 
     try:
         seek(args, settings)
+    except KeyboardInterrupt:
+        logging.info(f"User aborted execution.")
+        sys.exit(0)
     except Exception as e:
         traceback.print_exc()

@@ -29,7 +29,7 @@ class PageInspector:
         """
         with sync_playwright() as p:
             browser = p.chromium.launch_persistent_context(
-                user_data_dir=Path(os.path.join(f"{settings["temp_profiles_path"]}", f"{uuid4()}")),  # creates a unique user data directory
+                user_data_dir=Path(os.path.join(f"{settings['temp_profiles_path']}", f"{uuid4()}")),  # creates a unique user data directory
                 headless=self.headless,
                 args=settings["chromium_flags"]
             )  # headless to add elegance

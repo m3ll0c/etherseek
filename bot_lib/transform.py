@@ -75,7 +75,7 @@ class Transform:
                             if isinstance(body, dict):
                                 dataset["result"].append(body.get("result", ""))
                             elif isinstance(body, list):
-                                dataset["result"].append("".join([f"{res.get("result", "")};" for res in body]))
+                                dataset["result"].append("".join([f"{res.get('result', '')};" for res in body]))
                         else:
                             dataset["result"].append("")
                     else:
